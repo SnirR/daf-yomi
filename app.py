@@ -673,6 +673,20 @@ def create_combined_html(pages, tractate_name, start_daf, start_amud, end_daf, e
         .page p {{
             margin: 0.2em 0;
         }}
+        span.big {{
+            font-size: 1em;
+            font-weight: normal;
+            color: inherit;
+        }}
+        p > span.big:first-child {{
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #5a1a00;
+            display: inline-block;
+            min-width: 1.8em;
+            vertical-align: baseline;
+            line-height: 1;
+        }}
         @media print {{
             .page {{
                 border-bottom: none;
