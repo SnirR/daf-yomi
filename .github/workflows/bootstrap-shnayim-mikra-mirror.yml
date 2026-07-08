@@ -4,15 +4,49 @@ on:
   workflow_dispatch:
 
 jobs:
-  set-secret:
-    uses: SnirR/shnayim-mikra-app/.github/workflows/setup-mirror-secret.yml@main
-    secrets:
-      MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
-
   bootstrap:
-    needs: set-secret
     runs-on: ubuntu-latest
     steps:
+      - name: Copy MIRROR_TOKEN to SnirR/shnayim-mikra-app
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, json, os, urllib.request
+          from nacl import encoding, public
+
+          token = os.environ["GH_TOKEN"]
+          secret = os.environ["MIRROR_TOKEN"]
+          repo = "SnirR/shnayim-mikra-app"
+
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/actions/secrets/public-key",
+              headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+          )
+          with urllib.request.urlopen(req) as resp:
+              data = json.load(resp)
+
+          public_key = public.PublicKey(data["key"].encode("utf-8"), encoding.Base64Encoder())
+          sealed_box = public.SealedBox(public_key)
+          encrypted = base64.b64encode(sealed_box.encrypt(secret.encode("utf-8"))).decode("utf-8")
+
+          body = json.dumps({"encrypted_value": encrypted, "key_id": data["key_id"]}).encode("utf-8")
+          put = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/actions/secrets/MIRROR_TOKEN",
+              data=body,
+              method="PUT",
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Accept": "application/vnd.github+json",
+                  "Content-Type": "application/json",
+              },
+          )
+          with urllib.request.urlopen(put) as resp:
+              print("Set MIRROR_TOKEN on", repo, "status", resp.status)
+          PY
+
       - name: Create SnirRadomsky/shnayim-mikra-app if missing
         env:
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
