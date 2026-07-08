@@ -1,0 +1,44 @@
+name: Bootstrap shnayim-mikra-app mirror
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  secrets: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create SnirRadomsky/shnayim-mikra-app if missing
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          set -euo pipefail
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${MIRROR_TOKEN}" \
+            https://api.github.com/repos/SnirRadomsky/shnayim-mikra-app)
+          if [ "$STATUS" = "404" ]; then
+            curl -sf -H "Authorization: token ${MIRROR_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"shnayim-mikra-app","private":false,"description":"Mirror of SnirR/shnayim-mikra-app"}' \
+              https://api.github.com/user/repos
+          fi
+
+      - name: Mirror SnirR/shnayim-mikra-app to SnirRadomsky
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --bare https://github.com/SnirR/shnayim-mikra-app.git repo
+          cd repo
+          git push --mirror "https://x-access-token:${MIRROR_TOKEN}@github.com/SnirRadomsky/shnayim-mikra-app.git"
+
+      - name: Copy MIRROR_TOKEN to SnirR/shnayim-mikra-app
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "$MIRROR_TOKEN" | gh secret set MIRROR_TOKEN --repo SnirR/shnayim-mikra-app
