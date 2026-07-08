@@ -4,17 +4,15 @@ on:
   workflow_dispatch:
 
 jobs:
+  set-secret:
+    uses: SnirR/shnayim-mikra-app/.github/workflows/setup-mirror-secret.yml@72937ef
+    secrets:
+      MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+
   bootstrap:
+    needs: set-secret
     runs-on: ubuntu-latest
     steps:
-      - name: Copy MIRROR_TOKEN to SnirR/shnayim-mikra-app
-        env:
-          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          echo "$MIRROR_TOKEN" | gh secret set MIRROR_TOKEN --repo SnirR/shnayim-mikra-app
-
       - name: Create SnirRadomsky/shnayim-mikra-app if missing
         env:
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
