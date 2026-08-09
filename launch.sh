@@ -4,17 +4,25 @@
 echo "⚡ Daf Yomi Web App - Lightning Fast ⚡"
 echo "======================================"
 
-# Check if Python is available
-if ! command -v python3 &> /dev/null; then
-    echo "❌ Python3 is not installed or not in PATH"
-    exit 1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Prefer project venv (Homebrew Python is PEP 668 externally-managed)
+PYTHON="$SCRIPT_DIR/.venv/bin/python3"
+if [ ! -x "$PYTHON" ]; then
+    if command -v python3 &> /dev/null; then
+        PYTHON="$(command -v python3)"
+    else
+        echo "❌ Python3 is not installed or not in PATH"
+        exit 1
+    fi
 fi
 
 # Check if required modules are available
-python3 -c "import flask, requests, bs4" 2>/dev/null
+"$PYTHON" -c "import flask, requests, bs4, curl_cffi" 2>/dev/null
 if [ $? -ne 0 ]; then
     echo "❌ Required Python modules not found. Please install:"
-    echo "   pip install flask requests beautifulsoup4"
+    echo "   cd $SCRIPT_DIR && python3 -m venv .venv && .venv/bin/pip install flask requests beautifulsoup4 'curl-cffi>=0.13.0'"
     exit 1
 fi
 
@@ -31,7 +39,7 @@ fi
 echo "✅ Starting."
 
 # Start the Flask server in the background
-python3 app.py &
+"$PYTHON" app.py &
 SERVER_PID=$!
 
 # Wait a moment for the server to start
