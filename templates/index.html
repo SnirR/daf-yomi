@@ -311,6 +311,42 @@
             line-height: 1.4;
         }
 
+        .mode-toggle {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mode-toggle label,
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .mode-toggle input,
+        .checkbox-label input {
+            width: auto;
+            margin: 0;
+        }
+
+        .page-range {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .range-separator {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #666;
+            padding: 12px 0;
+        }
+
         #targetPages::-webkit-outer-spin-button,
         #targetPages::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -397,8 +433,8 @@
         
         <div class="info-box">
             <h3>איך להשתמש:</h3>
-            <p>בחרו מסכת, דף התחלה, וכמה עמודים אתם רוצים להדפיס. האפליקציה תוריד בדיוק כמה דפים שנכנסים.</p>
-            <p style="margin-top:8px;font-size:0.9em;color:#666;">בחלון ההדפסה יש להשאיר שוליים "ברירת מחדל" וקנה מידה 100%.</p>
+            <p>בחרו מסכת ודף התחלה. כברירת מחדל, ציינו כמה עמודי הדפסה אתם רוצים - האפליקציה תוריד ותחתוך בהתאם.</p>
+            <p style="margin-top:8px;font-size:0.9em;color:#666;">ניתן גם לעבור למצב "טווח דפים" להורדה לפי דף סיום, ללא התחשבות בעמודי הדפסה. בחלון ההדפסה יש להשאיר שוליים "ברירת מחדל" וקנה מידה 100%.</p>
         </div>
         
         <form id="downloadForm">
@@ -411,6 +447,20 @@
                         <div class="tractate-option" data-value="{{ tractate_name }}">{{ tractate_name }}</div>
                         {% endfor %}
                     </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>מצב הורדה:</label>
+                <div class="mode-toggle">
+                    <label>
+                        <input type="radio" name="downloadMode" value="pageCount" checked>
+                        לפי מספר עמודי הדפסה
+                    </label>
+                    <label>
+                        <input type="radio" name="downloadMode" value="range">
+                        לפי טווח דפים
+                    </label>
                 </div>
             </div>
             
@@ -437,24 +487,60 @@
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="targetPages">כמות עמודי הדפסה:</label>
-                <div class="page-input">
-                    <div class="input-with-arrows">
-                        <input type="number" id="targetPages" value="16" min="1" max="120" step="1" required title="כמה עמודים יצאו במדפסת">
-                        <div class="arrow-buttons">
-                            <button type="button" class="arrow-btn up" data-target="targetPages" tabindex="-1">▲</button>
-                            <button type="button" class="arrow-btn down" data-target="targetPages" tabindex="-1">▼</button>
+            <div id="pageCountSection">
+                <div class="form-group">
+                    <label for="targetPages">כמות עמודי הדפסה:</label>
+                    <div class="page-input">
+                        <div class="input-with-arrows">
+                            <input type="number" id="targetPages" value="16" min="1" max="120" step="1" title="כמה עמודים יצאו במדפסת">
+                            <div class="arrow-buttons">
+                                <button type="button" class="arrow-btn up" data-target="targetPages" tabindex="-1">▲</button>
+                                <button type="button" class="arrow-btn down" data-target="targetPages" tabindex="-1">▼</button>
+                            </div>
+                        </div>
+                        <div class="input-with-arrows">
+                            <select id="paperSize" title="גודל נייר">
+                                <option value="a4" selected>A4</option>
+                                <option value="letter">Letter</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="input-with-arrows">
-                        <select id="paperSize" title="גודל נייר">
-                            <option value="a4" selected>A4</option>
-                            <option value="letter">Letter</option>
-                        </select>
-                    </div>
+                    <div class="field-hint">האפליקציה תוריד דפים ותחתוך כדי להגיע למספר העמודים שביקשת.</div>
                 </div>
-                <div class="field-hint">האפליקציה תבחר עד לאיזה דף להוריד כך שההדפסה תתפוס בדיוק את מספר העמודים הזה.</div>
+
+                <div class="form-group" id="cutMidPageGroup">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="cutMidPage" checked>
+                        חתוך באמצע עמוד כדי להגיע בדיוק למספר העמודים
+                    </label>
+                    <div class="field-hint">כשמסומן, התוכן ייחתך גם באמצע עמוד גמרא. כשלא מסומן, ההורדה תיעצר בעמוד גמרא שלם אחרון שנכנס.</div>
+                </div>
+            </div>
+
+            <div id="rangeSection" style="display:none">
+                <div class="form-group">
+                    <label>דף סיום:</label>
+                    <div class="page-input">
+                        <div class="input-with-arrows">
+                            <input type="text" id="endDaf" value="ב" class="hebrew-input" pattern="[א-ת]+" title="הכנס מספר דף בעברית">
+                            <div class="arrow-buttons">
+                                <button type="button" class="arrow-btn up" data-target="endDaf" tabindex="-1">▲</button>
+                                <button type="button" class="arrow-btn down" data-target="endDaf" tabindex="-1">▼</button>
+                            </div>
+                        </div>
+                        <div class="input-with-arrows">
+                            <select id="endAmud">
+                                <option value="א">א</option>
+                                <option value="ב" selected>ב</option>
+                            </select>
+                            <div class="arrow-buttons">
+                                <button type="button" class="arrow-btn up" data-target="endAmud" tabindex="-1">▲</button>
+                                <button type="button" class="arrow-btn down" data-target="endAmud" tabindex="-1">▼</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-hint">ההורדה תכלול את כל הדפים מדף ההתחלה (למעלה) ועד כאן, ללא התחשבות בעמודי הדפסה.</div>
+                </div>
             </div>
             
             <button type="submit" class="download-btn" id="downloadBtn">
@@ -482,11 +568,78 @@
 
     <script>
         let currentEventSource = null;
+
+        function getDownloadMode() {
+            return document.querySelector('input[name="downloadMode"]:checked')?.value || 'pageCount';
+        }
+
+        function updateModeUI() {
+            const isPageCount = getDownloadMode() === 'pageCount';
+            document.getElementById('pageCountSection').style.display = isPageCount ? 'block' : 'none';
+            document.getElementById('rangeSection').style.display = isPageCount ? 'none' : 'block';
+            document.getElementById('targetPages').required = isPageCount;
+            runAllValidations(true);
+        }
+
+        document.querySelectorAll('input[name="downloadMode"]').forEach(el => {
+            el.addEventListener('change', () => {
+                updateModeUI();
+                hideFitResult();
+                saveFormState();
+            });
+        });
         
         document.getElementById('downloadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            if (!runAllValidations()) {
+                showStatus('יש שגיאות בטופס - אנא תקן לפני ההורדה', 'error');
+                return;
+            }
+
+            hideFitResult();
+            showStatus('מתחיל הורדה...', 'loading');
+            showProgress(true);
+            updateProgress(0, 'מתחיל...', '');
+            document.getElementById('downloadBtn').disabled = true;
+
+            const mode = getDownloadMode();
+
+            if (mode === 'range') {
+                const formData = {
+                    tractate: document.getElementById('tractate').value,
+                    start_daf: document.getElementById('startDaf').value,
+                    start_amud: document.getElementById('startAmud').value,
+                    end_daf: document.getElementById('endDaf').value,
+                    end_amud: document.getElementById('endAmud').value
+                };
+
+                try {
+                    const response = await fetch('/api/download', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        startRangeProgressMonitoring(data.task_id);
+                    } else {
+                        const error = await response.json();
+                        showStatus(`שגיאה: ${error.error}`, 'error');
+                        showProgress(false);
+                        document.getElementById('downloadBtn').disabled = false;
+                    }
+                } catch (error) {
+                    showStatus(`שגיאת רשת: ${error.message}`, 'error');
+                    showProgress(false);
+                    document.getElementById('downloadBtn').disabled = false;
+                }
+                return;
+            }
+
             const targetPages = parseInt(document.getElementById('targetPages').value, 10);
+            const cutMidPage = document.getElementById('cutMidPage').checked;
 
             const formData = {
                 tractate: document.getElementById('tractate').value,
@@ -498,20 +651,10 @@
 
             if (!formData.tractate || !formData.start_daf || !formData.start_amud) {
                 showStatus('אנא מלא את כל השדות', 'error');
+                showProgress(false);
+                document.getElementById('downloadBtn').disabled = false;
                 return;
             }
-
-            if (!runAllValidations()) {
-                showStatus('יש שגיאות בטופס - אנא תקן לפני ההורדה', 'error');
-                return;
-            }
-            
-            // Show loading status and progress bar
-            hideFitResult();
-            showStatus('מתחיל הורדה...', 'loading');
-            showProgress(true);
-            updateProgress(0, 'מתחיל...', '');
-            document.getElementById('downloadBtn').disabled = true;
             
             try {
                 const response = await fetch('/api/fit/start', {
@@ -524,7 +667,7 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    startProgressMonitoring(data.task_id, formData);
+                    startPageCountProgressMonitoring(data.task_id, targetPages, cutMidPage);
                 } else {
                     const error = await response.json();
                     showStatus(`שגיאה: ${error.error}`, 'error');
@@ -537,8 +680,44 @@
                 document.getElementById('downloadBtn').disabled = false;
             }
         });
+
+        function startRangeProgressMonitoring(taskId) {
+            if (currentEventSource) {
+                currentEventSource.close();
+            }
+
+            currentEventSource = new EventSource(`/api/progress/${taskId}`);
+
+            currentEventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                updateProgress(data.progress, data.message, data.current_page);
+
+                if (data.status === 'completed') {
+                    showStatus('הושלם! מוריד קובץ...', 'success');
+                    downloadCompletedFile(taskId);
+                    currentEventSource.close();
+                    currentEventSource = null;
+                } else if (data.status === 'error') {
+                    showStatus(`שגיאה: ${data.message}`, 'error');
+                    showProgress(false);
+                    document.getElementById('downloadBtn').disabled = false;
+                    currentEventSource.close();
+                    currentEventSource = null;
+                }
+            };
+
+            currentEventSource.onerror = function() {
+                showStatus('שגיאה בחיבור לשרת', 'error');
+                showProgress(false);
+                document.getElementById('downloadBtn').disabled = false;
+                if (currentEventSource) {
+                    currentEventSource.close();
+                    currentEventSource = null;
+                }
+            };
+        }
         
-        function startProgressMonitoring(taskId, formData) {
+        function startPageCountProgressMonitoring(taskId, targetPages, cutMidPage) {
             // Close any existing event source
             if (currentEventSource) {
                 currentEventSource.close();
@@ -554,7 +733,7 @@
                 if (data.status === 'measure') {
                     currentEventSource.close();
                     currentEventSource = null;
-                    fitToPageCount(taskId, formData.target_pages);
+                    fitToPageCount(taskId, targetPages, cutMidPage);
                 } else if (data.status === 'error') {
                     showStatus(`שגיאה: ${data.message}`, 'error');
                     showProgress(false);
@@ -645,7 +824,7 @@ ${payload.print_css}
             };
         }
 
-        async function fitToPageCount(taskId, targetPages) {
+        async function fitToPageCount(taskId, targetPages, cutMidPage) {
             try {
                 showStatus('מחשב כמה עמודים ייצאו בהדפסה...', 'loading');
 
@@ -656,55 +835,97 @@ ${payload.print_css}
                 let fragments = payload.fragments;
                 let totalPages = measurer.pagesFor(fragments, fragments.length);
 
-                // Keep pulling amudim until the downloaded material overflows the
-                // target, otherwise there is nothing to trim back to.
-                for (let round = 0; round < MAX_EXTEND_ROUNDS; round++) {
-                    if (totalPages > targetPages || !payload.has_more) break;
+                if (cutMidPage) {
+                    // Pull more amudim until content overflows the target page budget.
+                    for (let round = 0; round < MAX_EXTEND_ROUNDS; round++) {
+                        if (totalPages >= targetPages || !payload.has_more) break;
 
-                    const pagesPerAmud = Math.max(0.25, totalPages / fragments.length);
-                    const extra = Math.max(1, Math.ceil((targetPages - totalPages) / pagesPerAmud) + 1);
+                        const pagesPerAmud = Math.max(0.25, totalPages / fragments.length);
+                        const extra = Math.max(1, Math.ceil((targetPages - totalPages) / pagesPerAmud) + 1);
 
-                    showStatus(`מוריד עוד דפים (${totalPages} מתוך ${targetPages} עמודים)...`, 'loading');
+                        showStatus(`מוריד עוד דפים (${totalPages} מתוך ${targetPages} עמודים)...`, 'loading');
 
-                    payload = await fetchJson(`/api/fit/extend/${taskId}`, { count: extra });
-                    fragments = payload.fragments;
-                    totalPages = measurer.pagesFor(fragments, fragments.length);
-                }
+                        payload = await fetchJson(`/api/fit/extend/${taskId}`, { count: extra });
+                        fragments = payload.fragments;
+                        totalPages = measurer.pagesFor(fragments, fragments.length);
+                    }
+                } else {
+                    // Pull until we have enough to trim back to full amudim.
+                    for (let round = 0; round < MAX_EXTEND_ROUNDS; round++) {
+                        if (totalPages > targetPages || !payload.has_more) break;
 
-                // Largest prefix of amudim that still fits within the target.
-                let best = 0;
-                let bestPages = 0;
-                let lo = 1, hi = fragments.length;
+                        const pagesPerAmud = Math.max(0.25, totalPages / fragments.length);
+                        const extra = Math.max(1, Math.ceil((targetPages - totalPages) / pagesPerAmud) + 1);
 
-                while (lo <= hi) {
-                    const mid = (lo + hi) >> 1;
-                    const pages = measurer.pagesFor(fragments, mid);
-                    if (pages <= targetPages) {
-                        best = mid;
-                        bestPages = pages;
-                        lo = mid + 1;
-                    } else {
-                        hi = mid - 1;
+                        showStatus(`מוריד עוד דפים (${totalPages} מתוך ${targetPages} עמודים)...`, 'loading');
+
+                        payload = await fetchJson(`/api/fit/extend/${taskId}`, { count: extra });
+                        fragments = payload.fragments;
+                        totalPages = measurer.pagesFor(fragments, fragments.length);
                     }
                 }
 
-                if (best === 0) {
-                    best = 1;
-                    bestPages = measurer.pagesFor(fragments, 1);
-                    showToast(`עמוד בודד כבר תופס ${bestPages} עמודי הדפסה - הורדנו דף אחד`, 'warning', 5000);
+                let best = 0;
+                let bestPages = 0;
+
+                if (cutMidPage) {
+                    // Smallest prefix that fills the target; we'll clip to exact height.
+                    let lo = 1, hi = fragments.length;
+                    while (lo <= hi) {
+                        const mid = (lo + hi) >> 1;
+                        const pages = measurer.pagesFor(fragments, mid);
+                        if (pages >= targetPages) {
+                            best = mid;
+                            bestPages = pages;
+                            hi = mid - 1;
+                        } else {
+                            lo = mid + 1;
+                        }
+                    }
+
+                    if (best === 0) {
+                        best = fragments.length;
+                        bestPages = measurer.pagesFor(fragments, best);
+                    }
+                } else {
+                    // Largest prefix of whole amudim that still fits.
+                    let lo = 1, hi = fragments.length;
+                    while (lo <= hi) {
+                        const mid = (lo + hi) >> 1;
+                        const pages = measurer.pagesFor(fragments, mid);
+                        if (pages <= targetPages) {
+                            best = mid;
+                            bestPages = pages;
+                            lo = mid + 1;
+                        } else {
+                            hi = mid - 1;
+                        }
+                    }
+
+                    if (best === 0) {
+                        best = 1;
+                        bestPages = measurer.pagesFor(fragments, 1);
+                        showToast(`עמוד בודד כבר תופס ${bestPages} עמודי הדפסה - הורדנו דף אחד`, 'warning', 5000);
+                    }
                 }
 
                 const minPages = measurer.minPagesFor(fragments, best);
                 measurer.reset();
 
                 showStatus('בונה את הקובץ...', 'loading');
-                const built = await fetchJson(`/api/fit/build/${taskId}`, { amud_count: best });
+                const buildPayload = { amud_count: best };
+                const canCutExact = cutMidPage && bestPages >= targetPages;
+                if (canCutExact) {
+                    buildPayload.cut_to_pages = targetPages;
+                }
+
+                const built = await fetchJson(`/api/fit/build/${taskId}`, buildPayload);
 
                 const startLabel = `${document.getElementById('startDaf').value} ע"${document.getElementById('startAmud').value}`;
                 const endLabel = `${built.end_daf} ע"${built.end_amud}`;
-                const stoppedBecauseNextDoesNotFit = best < fragments.length;
+                const stoppedBecauseNextDoesNotFit = !cutMidPage && best < fragments.length;
                 showFitResult(startLabel, endLabel, best, minPages, bestPages, targetPages,
-                              stoppedBecauseNextDoesNotFit, payload.has_more);
+                              stoppedBecauseNextDoesNotFit, payload.has_more, cutMidPage, canCutExact);
 
                 await downloadCompletedFile(taskId);
             } catch (error) {
@@ -725,16 +946,23 @@ ${payload.print_css}
         }
 
         function showFitResult(startLabel, endLabel, amudCount, minPages, maxPages, targetPages,
-                               stoppedBecauseNextDoesNotFit, hasMore) {
+                               stoppedBecauseNextDoesNotFit, hasMore, cutMidPage, cutExact) {
             const el = document.getElementById('fitResult');
             const shortfall = targetPages - maxPages;
 
-            // maxPages never undershoots the real sheet count and minPages never
-            // overshoots it, so show a range whenever the two disagree.
-            const pagesLabel = minPages < maxPages ? `${minPages}-${maxPages}` : `${maxPages}`;
+            let pagesLabel;
+            if (cutMidPage && cutExact) {
+                pagesLabel = `${targetPages}`;
+            } else if (minPages < maxPages) {
+                pagesLabel = `${minPages}-${maxPages}`;
+            } else {
+                pagesLabel = `${maxPages}`;
+            }
 
             let note = '';
-            if (shortfall > 0 && stoppedBecauseNextDoesNotFit) {
+            if (cutMidPage && cutExact) {
+                note = 'התוכן נחתך כדי להגיע בדיוק למספר העמודים שביקשת.';
+            } else if (shortfall > 0 && stoppedBecauseNextDoesNotFit) {
                 note = `העמוד הבא כבר לא נכנס ב-${targetPages} עמודים, לכן נשארו ${shortfall} עמודים פנויים.`;
             } else if (shortfall > 0 && !hasMore) {
                 note = 'המסכת נגמרה לפני שהגענו למספר העמודים שביקשת.';
@@ -898,6 +1126,12 @@ ${payload.print_css}
             return amud === 'א' ? 1 : 2;
         }
 
+        function compareDafAmud(dafA, amudA, dafB, amudB) {
+            const na = dafToNumber(dafA) * 2 + amudToNumber(amudA);
+            const nb = dafToNumber(dafB) * 2 + amudToNumber(amudB);
+            return na - nb;
+        }
+
         function getCurrentTractate() {
             return document.getElementById('tractate').value.trim();
         }
@@ -914,7 +1148,7 @@ ${payload.print_css}
         }
 
         function clearAllInvalid() {
-            ['startDaf','startAmud','targetPages'].forEach(markValid);
+            ['startDaf','startAmud','targetPages','endDaf','endAmud'].forEach(markValid);
         }
 
         // ── Core validation ───────────────────────────────────────────────────
@@ -937,13 +1171,37 @@ ${payload.print_css}
 
             // Check that if this is the last daf, amud doesn't exceed lastAmud
             if (dafNum === lastDafNum && limit.lastAmud === 'א' && amudNum > 1) {
-                markInvalid('startAmud');
+                const amudFieldId = fieldId.includes('start') ? 'startAmud' : 'endAmud';
+                markInvalid(amudFieldId);
                 if (!silent) showToast(`מסכת ${tractate} מסתיימת בעמוד א של דף ${hebrewNumbers[lastDafNum - 1]} - עמוד ב לא קיים`);
                 return false;
             }
 
             markValid(fieldId);
-            markValid('startAmud');
+            markValid(fieldId.includes('start') ? 'startAmud' : 'endAmud');
+            return true;
+        }
+
+        function validateRange(silent) {
+            if (getDownloadMode() !== 'range') return true;
+
+            const startDaf = document.getElementById('startDaf').value;
+            const startAmud = document.getElementById('startAmud').value;
+            const endDaf = document.getElementById('endDaf').value;
+            const endAmud = document.getElementById('endAmud').value;
+
+            if (!startDaf || !endDaf) return true;
+            if (dafToNumber(startDaf) <= 0 || dafToNumber(endDaf) <= 0) return true;
+
+            if (compareDafAmud(startDaf, startAmud, endDaf, endAmud) > 0) {
+                markInvalid('endDaf');
+                markInvalid('endAmud');
+                if (!silent) showToast(`טווח לא תקין: דף ${startDaf} עמוד ${startAmud} מאוחר יותר מ-${endDaf} עמוד ${endAmud}`);
+                return false;
+            }
+
+            markValid('endDaf');
+            markValid('endAmud');
             return true;
         }
 
@@ -965,10 +1223,18 @@ ${payload.print_css}
             clearAllInvalid();
             const startDaf = document.getElementById('startDaf').value;
             const startAmud = document.getElementById('startAmud').value;
+            const endDaf = document.getElementById('endDaf').value;
+            const endAmud = document.getElementById('endAmud').value;
+            const isPageCount = getDownloadMode() === 'pageCount';
 
             let ok = true;
             ok = validateDafAgainstTractate(startDaf, startAmud, 'startDaf', 'דף התחלה', silent) && ok;
-            ok = validateTargetPages(silent) && ok;
+            if (isPageCount) {
+                ok = validateTargetPages(silent) && ok;
+            } else {
+                ok = validateDafAgainstTractate(endDaf, endAmud, 'endDaf', 'דף סיום', silent) && ok;
+                ok = validateRange(silent) && ok;
+            }
             return ok;
         }
 
@@ -1006,6 +1272,10 @@ ${payload.print_css}
             handleDafInput(e, 'startAmud');
         });
 
+        document.getElementById('endDaf').addEventListener('input', function(e) {
+            handleDafInput(e, 'endAmud');
+        });
+
         document.getElementById('targetPages').addEventListener('input', function() {
             runAllValidations(true);
         });
@@ -1015,6 +1285,10 @@ ${payload.print_css}
         });
 
         document.getElementById('paperSize').addEventListener('change', hideFitResult);
+        document.getElementById('cutMidPage').addEventListener('change', () => {
+            hideFitResult();
+            saveFormState();
+        });
 
         document.getElementById('tractate').addEventListener('input', validateHebrewInputAllowSpace);
 
@@ -1024,6 +1298,20 @@ ${payload.print_css}
             const limit = TRACTATE_LIMITS[tractate];
             if (limit && limit.lastAmud === 'א') {
                 const dafNum = dafToNumber(document.getElementById('startDaf').value);
+                if (dafNum === limit.lastDaf && this.value === 'ב') {
+                    this.value = 'א';
+                    showToast(`מסכת ${tractate} מסתיימת בעמוד א של דף ${hebrewNumbers[limit.lastDaf - 1]}`, 'error');
+                    return;
+                }
+            }
+            runAllValidations();
+        });
+
+        document.getElementById('endAmud').addEventListener('change', function() {
+            const tractate = getCurrentTractate();
+            const limit = TRACTATE_LIMITS[tractate];
+            if (limit && limit.lastAmud === 'א') {
+                const dafNum = dafToNumber(document.getElementById('endDaf').value);
                 if (dafNum === limit.lastDaf && this.value === 'ב') {
                     this.value = 'א';
                     showToast(`מסכת ${tractate} מסתיימת בעמוד א של דף ${hebrewNumbers[limit.lastDaf - 1]}`, 'error');
@@ -1164,7 +1452,9 @@ ${payload.print_css}
         
         // Add keyboard event listeners for page inputs
         document.getElementById('startDaf').addEventListener('keydown', handlePageKeydown);
+        document.getElementById('endDaf').addEventListener('keydown', handlePageKeydown);
         document.getElementById('startAmud').addEventListener('keydown', handleAmudKeydown);
+        document.getElementById('endAmud').addEventListener('keydown', handleAmudKeydown);
         
         // Add click event listeners for arrow buttons
         document.querySelectorAll('.arrow-btn').forEach(btn => {
@@ -1236,7 +1526,7 @@ ${payload.print_css}
         function adjustAmud(targetId, isNext) {
             const select = document.getElementById(targetId);
             const currentValue = select.value;
-            const dafInputId = 'startDaf';
+            const dafInputId = targetId === 'startAmud' ? 'startDaf' : 'endDaf';
 
             if (isNext && currentValue === 'א') {
                 // Check if we'd be going to ב on the last daf of a tractate that ends on א
@@ -1259,14 +1549,18 @@ ${payload.print_css}
 
         // Persist form state in localStorage so the last input is remembered.
         const STORAGE_KEY = 'dafYomiLastInput';
-        const persistedFieldIds = ['tractate', 'startDaf', 'startAmud', 'targetPages', 'paperSize'];
+        const persistedFieldIds = ['tractate', 'startDaf', 'startAmud', 'targetPages', 'paperSize', 'endDaf', 'endAmud', 'cutMidPage'];
 
         function saveFormState() {
             const state = {};
             persistedFieldIds.forEach(id => {
                 const el = document.getElementById(id);
-                if (el) state[id] = el.value;
+                if (el) {
+                    state[id] = el.type === 'checkbox' ? el.checked : el.value;
+                }
             });
+            const modeEl = document.querySelector('input[name="downloadMode"]:checked');
+            if (modeEl) state.downloadMode = modeEl.value;
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             } catch (err) {
@@ -1288,11 +1582,21 @@ ${payload.print_css}
             persistedFieldIds.forEach(id => {
                 if (state[id] === undefined || state[id] === null) return;
                 const el = document.getElementById(id);
-                if (el) el.value = state[id];
+                if (!el) return;
+                if (el.type === 'checkbox') {
+                    el.checked = !!state[id];
+                } else {
+                    el.value = state[id];
+                }
             });
+            if (state.downloadMode) {
+                const modeEl = document.querySelector(`input[name="downloadMode"][value="${state.downloadMode}"]`);
+                if (modeEl) modeEl.checked = true;
+            }
         }
 
         restoreFormState();
+        updateModeUI();
         // Validate restored state silently (no toast on page load, just highlight invalid fields)
         setTimeout(() => {
             if (document.getElementById('startDaf').value) runAllValidations(true);

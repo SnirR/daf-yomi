@@ -7,7 +7,8 @@ A collection of Python tools for downloading, organizing, and formatting Hebrew 
 ### Web Application (New!)
 - 🌐 **Modern Web Interface**: Easy-to-use Hebrew RTL web interface
 - 🖨️ **Print by Page Count**: Ask for N printed pages instead of a daf range, and the app
-  measures the real layout to pick how many amudim fit
+  measures the real layout to pick how many amudim fit (with optional mid-page cut)
+- 📄 **Range Mode**: Download by explicit daf range without page-count fitting
 - 📊 **Real-time Progress Bar**: See download progress and current page being processed
 - 🔍 **Searchable Tractate Selection**: Type to search tractates (e.g., "ירו" finds "עירובין")
 - 📁 **Informative Filenames**: Downloads have meaningful names like `avodah_zarah_71-76.html`
@@ -58,9 +59,11 @@ This will:
 **Using the web interface:**
 1. **Select Tractate**: Type to search (e.g., "בבא" shows all בבא tractates)
 2. **Choose Starting Daf**: Set the daf and amud to start from, using the arrows or arrow keys
-3. **Choose Page Count**: Enter how many pages you want out of your printer, and the paper size
+3. **Choose Mode** (default: page count):
+   - **Page count**: Enter how many printed pages you want and paper size. By default the app cuts mid-amud to hit that count exactly; uncheck the box to stop at whole amudim only.
+   - **Range**: Enter an end daf/amud to download the full range with no page fitting
 4. **Download**: Click "הורד דפים" and watch the real-time progress bar
-5. **Get File**: Downloads automatically, containing exactly the amudim that fit in that many pages
+5. **Get File**: Downloads automatically when complete
 
 ### Option 2: Command Line Tools (Legacy)
 
@@ -132,9 +135,8 @@ The scripts include comprehensive Hebrew numeral mapping:
 
 ### Print Settings
 The web app asks for a starting daf and a number of printed pages, then picks the
-end daf so the result fits in that many sheets. It downloads amudim from the start
-point, lays them out in a hidden iframe sized to the exact printable area, and keeps
-the longest run of amudim that stays within your target.
+end daf so the result fits in that many sheets. By default it cuts mid-amud to reach
+the exact page count; uncheck "חתוך באמצע עמוד" to stop at the last whole amud that fits.
 
 The generated file pins the paper size and margins with an `@page` rule, so the count
 only holds if the print dialog keeps its defaults:
