@@ -136,6 +136,42 @@ TRACTATES = {
     'נדה': 322            # Following sequence pattern (was נידה on site)
 }
 
+# Last daf and amud of each tractate, so page-count fitting knows where to stop
+TRACTATE_LAST = {
+    'ברכות': (64, 'א'), 'שבת': (157, 'ב'), 'עירובין': (105, 'א'), 'פסחים': (121, 'ב'),
+    'שקלים': (22, 'א'), 'יומא': (88, 'א'), 'סוכה': (56, 'ב'), 'ביצה': (40, 'ב'),
+    'ראש השנה': (35, 'א'), 'תענית': (31, 'א'), 'מגילה': (32, 'א'), 'מועד קטן': (29, 'א'),
+    'חגיגה': (27, 'א'), 'יבמות': (122, 'ב'), 'כתובות': (112, 'ב'), 'נדרים': (91, 'ב'),
+    'נזיר': (66, 'ב'), 'סוטה': (49, 'ב'), 'גיטין': (90, 'ב'), 'קידושין': (82, 'ב'),
+    'בבא קמא': (119, 'א'), 'בבא מציעא': (119, 'א'), 'בבא בתרא': (176, 'א'),
+    'סנהדרין': (113, 'ב'), 'מכות': (24, 'ב'), 'שבועות': (49, 'ב'), 'עבודה זרה': (76, 'א'),
+    'הוריות': (14, 'א'), 'זבחים': (120, 'א'), 'מנחות': (110, 'א'), 'חולין': (142, 'א'),
+    'בכורות': (61, 'א'), 'ערכין': (34, 'א'), 'תמורה': (34, 'א'), 'כריתות': (28, 'ב'),
+    'מעילה': (22, 'א'), 'תמיד': (33, 'ב'), 'מדות': (37, 'א'), 'קינים': (25, 'א'),
+    'נדה': (73, 'א'),
+}
+
+# Paper dimensions in millimetres, and the margin baked into the @page rule.
+PAPER_SIZES = {
+    'a4': ('A4', 210.0, 297.0),
+    'letter': ('Letter', 215.9, 279.4),
+}
+PRINT_MARGIN_MM = 12.0
+
+# Rough starting guess used to decide how many amudim to fetch before measuring.
+ESTIMATED_PAGES_PER_AMUD = 2.0
+
+# Amudim are addressed by a single running index so ranges are easy to walk.
+def amud_index(daf_num, amud):
+    return daf_num * 2 + (0 if amud == 'א' else 1)
+
+def decode_amud_index(index):
+    return index // 2, ('א' if index % 2 == 0 else 'ב')
+
+def mm_to_px(mm):
+    """CSS pixels at the 96dpi reference resolution browsers use for print layout"""
+    return mm / 25.4 * 96.0
+
 def hebrew_to_amud_number(daf_hebrew, amud):
     """Convert Hebrew daf notation to amud number used by the site"""
     page_num = HEBREW_NUMBERS.get(daf_hebrew, 0)
@@ -418,7 +454,12 @@ def progress_stream(task_id):
                 if task_id in progress_data:
                     del progress_data[task_id]
                 break
-                
+
+            if data.get('status') == 'measure':
+                # Downloading is done but the task lives on: the client measures
+                # the page count and then asks for the file to be built.
+                break
+
             time.sleep(0.5)  # Update every 500ms
     
     return Response(generate(), mimetype='text/event-stream')
@@ -640,17 +681,31 @@ def download_pages_background(task_id, tractate_name, start_daf, start_amud, end
             'message': f'שגיאה: {str(e)}'
         })
 
-def create_combined_html(pages, tractate_name, start_daf, start_amud, end_daf, end_amud):
-    """Create combined HTML from multiple pages"""
-    title = f"{tractate_name} {start_daf} {start_amud} - {end_daf} {end_amud}"
-    
-    html = f"""<!DOCTYPE html>
-<html dir="rtl" lang="he">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
-    <style>
+# Rules that only apply on paper. The measurement iframe renders in screen media,
+# so it applies these unconditionally to lay text out exactly as it will print.
+COMBINED_PRINT_CSS = """        body {
+            margin: 0;
+            max-width: none;
+        }
+        .page {
+            border-bottom: none;
+        }
+"""
+
+def build_combined_style(paper='a4'):
+    """
+    Style block for the downloaded file.
+
+    The @page rule pins the paper size and margins so the printed page count is
+    deterministic instead of depending on the browser's default margins.
+    """
+    css_size, _, _ = PAPER_SIZES.get(paper, PAPER_SIZES['a4'])
+
+    return f"""    <style>
+        @page {{
+            size: {css_size};
+            margin: {PRINT_MARGIN_MM:g}mm;
+        }}
         body {{
             font-family: 'Times New Roman', serif;
             direction: rtl;
@@ -694,64 +749,332 @@ def create_combined_html(pages, tractate_name, start_daf, start_amud, end_daf, e
             line-height: 1;
         }}
         @media print {{
-            .page {{
-                border-bottom: none;
-            }}
-        }}
-    </style>
+{COMBINED_PRINT_CSS}        }}
+    </style>"""
+
+def render_page_fragment(page):
+    """Render one amud as the '<div class="page">' block used in the combined file"""
+    soup = BeautifulSoup(page['content'], 'html.parser')
+
+    page_title = soup.find('h1')
+    page_content = soup.find('body')
+
+    html = '<div class="page">\n'
+
+    if page_title:
+        html += f'<h1>{page_title.get_text().strip()}</h1>\n'
+
+    if page_content:
+        # Remove the h1 from content to avoid duplication
+        content_copy = BeautifulSoup(str(page_content), 'html.parser')
+        strip_kodat_widget(content_copy)
+        title_in_content = content_copy.find('h1')
+        if title_in_content:
+            title_in_content.decompose()
+
+        # Extract just the content div to avoid extra body/html structure
+        content_div = content_copy.find('div', class_='content')
+        content_html = str(content_div) if content_div else str(content_copy)
+
+        # Collapse whitespace and tighten paragraph spacing
+        content_html = re.sub(r'\n\s*\n+', '\n', content_html)
+        content_html = re.sub(r'<p>\s*</p>', '', content_html)
+        content_html = re.sub(r'</p>\s*<p>', '</p><p>', content_html)
+        content_html = re.sub(r'<p>', '<p style="margin:0.2em 0;">', content_html)
+        html += content_html
+
+    return html + '</div>\n\n'
+
+def build_document_title(tractate_name, start_daf, start_amud, end_daf, end_amud):
+    return f"{tractate_name} {start_daf} {start_amud} - {end_daf} {end_amud}"
+
+def create_combined_html(pages, tractate_name, start_daf, start_amud, end_daf, end_amud, paper='a4'):
+    """Create combined HTML from multiple pages"""
+    title = build_document_title(tractate_name, start_daf, start_amud, end_daf, end_amud)
+
+    body = ''.join(render_page_fragment(page) for page in pages)
+
+    return f"""<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+{build_combined_style(paper)}
 </head>
 <body>
     <h1>📖 {title}</h1>
-"""
-    
-    for page in pages:
-        soup = BeautifulSoup(page['content'], 'html.parser')
-        
-        # Extract title and content properly
-        page_title = soup.find('h1')
-        page_content = soup.find('body')
-        
-        html += f'<div class="page">\n'
-        
-        if page_title:
-            html += f'<h1>{page_title.get_text().strip()}</h1>\n'
-            
-        if page_content:
-            # Remove the h1 from content to avoid duplication
-            content_copy = BeautifulSoup(str(page_content), 'html.parser')
-            strip_kodat_widget(content_copy)
-            title_in_content = content_copy.find('h1')
-            if title_in_content:
-                title_in_content.decompose()
-            
-            # Extract just the content div to avoid extra body/html structure
-            content_div = content_copy.find('div', class_='content')
-            if content_div:
-                # More aggressive whitespace cleanup
-                content_html = str(content_div)
-                # Remove excessive newlines and whitespace
-                content_html = re.sub(r'\n\s*\n+', '\n', content_html)
-                content_html = re.sub(r'<p>\s*</p>', '', content_html)
-                # Remove excessive spacing between paragraphs
-                content_html = re.sub(r'</p>\s*<p>', '</p><p>', content_html)
-                # Minimize margins and padding in paragraphs
-                content_html = re.sub(r'<p>', '<p style="margin:0.2em 0;">', content_html)
-                html += content_html
-            else:
-                # Fallback: use the body content but clean it up
-                content_html = str(content_copy)
-                content_html = re.sub(r'\n\s*\n+', '\n', content_html)
-                content_html = re.sub(r'<p>\s*</p>', '', content_html)
-                content_html = re.sub(r'</p>\s*<p>', '</p><p>', content_html)
-                content_html = re.sub(r'<p>', '<p style="margin:0.2em 0;">', content_html)
-                html += content_html
-            
-        html += '</div>\n\n'
-    
-    html += """</body>
+{body}</body>
 </html>"""
-    
-    return html
+
+# ── Fit-to-page-count flow ────────────────────────────────────────────────
+# The user picks a starting amud and how many sheets they want to print. The
+# server streams amudim down one at a time; the browser lays them out in a
+# hidden iframe at the exact printable size to learn how many sheets they take,
+# then asks for a file containing only the amudim that fit.
+
+fit_tasks = {}
+
+MAX_FIT_AMUDIM = 60
+
+def fetch_amud(massechet_num, daf_num, amud):
+    """Download and extract a single amud, or None if it is unavailable"""
+    daf_hebrew = NUMBER_TO_HEBREW.get(daf_num)
+    if not daf_hebrew:
+        return None
+
+    amud_number = hebrew_to_amud_number(daf_hebrew, amud)
+    if amud_number == 0:
+        return None
+
+    html_content = download_daf_page(massechet_num, amud_number)
+    if not html_content:
+        return None
+
+    title, content = extract_content_and_title(html_content)
+    if not (title and content):
+        return None
+
+    return {
+        'daf': daf_hebrew,
+        'amud': amud,
+        'title': title,
+        'content': create_html_page(title, str(content)),
+    }
+
+def fit_download_amudim(task, count, task_id=None):
+    """Fetch up to `count` more amudim into the task, reporting progress if given a task_id"""
+    fetched = 0
+
+    while fetched < count and task['next_index'] <= task['last_index']:
+        if len(task['amudim']) >= MAX_FIT_AMUDIM:
+            break
+
+        daf_num, amud = decode_amud_index(task['next_index'])
+        daf_hebrew = NUMBER_TO_HEBREW.get(daf_num, str(daf_num))
+
+        if task_id and task_id in progress_data:
+            progress_data[task_id].update({
+                'current_page': f'{daf_hebrew} ע"{amud}',
+                'progress': int((fetched / count) * 100),
+                'message': f'מוריד דף {daf_hebrew} ע"{amud}...',
+            })
+
+        page = fetch_amud(task['massechet_num'], daf_num, amud)
+        task['next_index'] += 1
+        fetched += 1
+
+        if page:
+            task['amudim'].append(page)
+
+    return fetched
+
+def fit_has_more(task):
+    return task['next_index'] <= task['last_index'] and len(task['amudim']) < MAX_FIT_AMUDIM
+
+def fit_fragments_payload(task):
+    last = task['amudim'][-1]
+    title = build_document_title(
+        task['tractate_name'], task['start_daf'], task['start_amud'], last['daf'], last['amud']
+    )
+
+    _, paper_w, paper_h = PAPER_SIZES.get(task['paper'], PAPER_SIZES['a4'])
+    printable_w = mm_to_px(paper_w - 2 * PRINT_MARGIN_MM)
+    printable_h = mm_to_px(paper_h - 2 * PRINT_MARGIN_MM)
+
+    return {
+        'style': build_combined_style(task['paper']),
+        'print_css': COMBINED_PRINT_CSS,
+        'header_html': f'<h1>📖 {title}</h1>',
+        'page_width_px': printable_w,
+        'page_height_px': printable_h,
+        'has_more': fit_has_more(task),
+        'fragments': [
+            {'label': f'{page["daf"]} ע"{page["amud"]}', 'html': render_page_fragment(page)}
+            for page in task['amudim']
+        ],
+    }
+
+def fit_download_background(task_id, count):
+    """Background task for the initial batch of amudim"""
+    task = fit_tasks.get(task_id)
+    if not task:
+        return
+
+    try:
+        progress_data[task_id].update({
+            'status': 'downloading',
+            'total_pages': count,
+            'message': 'מוריד דפים...',
+        })
+
+        fit_download_amudim(task, count, task_id)
+
+        if not task['amudim']:
+            progress_data[task_id].update({
+                'status': 'error',
+                'message': f'לא ניתן להוריד דפים ממסכת {task["tractate_name"]}. ייתכן שהאתר חוסם בקשות אוטומטיות.',
+            })
+            return
+
+        progress_data[task_id].update({
+            'status': 'measure',
+            'progress': 100,
+            'message': 'מחשב כמה עמודי הדפסה יוצאים...',
+        })
+
+    except Exception as e:
+        print(f"ERROR in fit task: {e}")
+        progress_data[task_id].update({'status': 'error', 'message': f'שגיאה: {str(e)}'})
+
+@app.route('/api/fit/start', methods=['POST'])
+def fit_start():
+    """Begin downloading amudim for a target number of printed pages"""
+    data = request.json or {}
+
+    tractate_name = data.get('tractate')
+    start_daf = data.get('start_daf')
+    start_amud = data.get('start_amud')
+    paper = data.get('paper', 'a4')
+
+    try:
+        target_pages = int(data.get('target_pages', 0))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'מספר עמודים לא תקין'}), 400
+
+    if not all([tractate_name, start_daf, start_amud]) or target_pages < 1:
+        return jsonify({'error': 'Missing required parameters'}), 400
+
+    massechet_num = TRACTATES.get(tractate_name)
+    if not massechet_num:
+        return jsonify({'error': f'Unknown tractate: {tractate_name}'}), 400
+
+    if start_daf not in HEBREW_NUMBERS:
+        return jsonify({'error': 'Invalid Hebrew page number'}), 400
+
+    if paper not in PAPER_SIZES:
+        paper = 'a4'
+
+    start_num = HEBREW_NUMBERS[start_daf]
+    last_daf, last_amud = TRACTATE_LAST.get(tractate_name, (176, 'ב'))
+
+    start_index = amud_index(start_num, start_amud)
+    last_index = amud_index(last_daf, last_amud)
+
+    if start_index > last_index:
+        return jsonify({'error': f'דף {start_daf} חורג מגבול מסכת {tractate_name}'}), 400
+
+    task_id = str(uuid.uuid4())
+    fit_tasks[task_id] = {
+        'tractate_name': tractate_name,
+        'massechet_num': massechet_num,
+        'start_daf': start_daf,
+        'start_amud': start_amud,
+        'paper': paper,
+        'target_pages': target_pages,
+        'next_index': start_index,
+        'last_index': last_index,
+        'amudim': [],
+    }
+
+    # Over-fetch slightly so the measurement usually has enough material on the
+    # first pass; the client asks for more only if the target is still unmet.
+    initial_count = min(
+        int(target_pages / ESTIMATED_PAGES_PER_AMUD) + 2,
+        target_pages + 2,
+        last_index - start_index + 1,
+        MAX_FIT_AMUDIM,
+    )
+    initial_count = max(1, initial_count)
+
+    progress_data[task_id] = {
+        'status': 'starting',
+        'progress': 0,
+        'current_page': '',
+        'total_pages': initial_count,
+        'completed_pages': 0,
+        'message': 'מתחיל הורדה...',
+    }
+
+    thread = Thread(target=fit_download_background, args=(task_id, initial_count))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({'task_id': task_id})
+
+@app.route('/api/fit/fragments/<task_id>')
+def fit_fragments(task_id):
+    """Markup and printable dimensions the client needs to measure the page count"""
+    task = fit_tasks.get(task_id)
+    if not task:
+        return jsonify({'error': 'Task not found'}), 404
+    if not task['amudim']:
+        return jsonify({'error': 'No pages downloaded'}), 400
+
+    return jsonify(fit_fragments_payload(task))
+
+@app.route('/api/fit/extend/<task_id>', methods=['POST'])
+def fit_extend(task_id):
+    """Fetch a few more amudim when the measurement came up short of the target"""
+    task = fit_tasks.get(task_id)
+    if not task:
+        return jsonify({'error': 'Task not found'}), 404
+
+    try:
+        count = int((request.json or {}).get('count', 1))
+    except (TypeError, ValueError):
+        count = 1
+
+    fit_download_amudim(task, max(1, min(count, 8)))
+
+    return jsonify(fit_fragments_payload(task))
+
+@app.route('/api/fit/build/<task_id>', methods=['POST'])
+def fit_build(task_id):
+    """Build the downloadable file from the first N amudim the client selected"""
+    task = fit_tasks.get(task_id)
+    if not task:
+        return jsonify({'error': 'Task not found'}), 404
+
+    try:
+        amud_count = int((request.json or {}).get('amud_count', 0))
+    except (TypeError, ValueError):
+        amud_count = 0
+
+    amud_count = max(1, min(amud_count, len(task['amudim'])))
+    selected = task['amudim'][:amud_count]
+    end_daf, end_amud = selected[-1]['daf'], selected[-1]['amud']
+
+    combined_html = create_combined_html(
+        selected, task['tractate_name'], task['start_daf'], task['start_amud'],
+        end_daf, end_amud, task['paper']
+    )
+
+    temp_dir = tempfile.mkdtemp()
+    filename = create_informative_filename(
+        task['tractate_name'], task['start_daf'], task['start_amud'], end_daf, end_amud
+    )
+    temp_file = os.path.join(temp_dir, filename)
+
+    with open(temp_file, 'w', encoding='utf-8') as f:
+        f.write(combined_html)
+
+    progress_data[task_id] = {
+        'status': 'completed',
+        'progress': 100,
+        'message': 'הקובץ מוכן להורדה',
+        'filename': filename,
+        'file_path': temp_file,
+        'temp_dir': temp_dir,
+    }
+    fit_tasks.pop(task_id, None)
+
+    return jsonify({
+        'filename': filename,
+        'end_daf': end_daf,
+        'end_amud': end_amud,
+        'amud_count': amud_count,
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

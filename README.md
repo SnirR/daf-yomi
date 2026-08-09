@@ -6,6 +6,8 @@ A collection of Python tools for downloading, organizing, and formatting Hebrew 
 
 ### Web Application (New!)
 - 🌐 **Modern Web Interface**: Easy-to-use Hebrew RTL web interface
+- 🖨️ **Print by Page Count**: Ask for N printed pages instead of a daf range, and the app
+  measures the real layout to pick how many amudim fit
 - 📊 **Real-time Progress Bar**: See download progress and current page being processed
 - 🔍 **Searchable Tractate Selection**: Type to search tractates (e.g., "ירו" finds "עירובין")
 - 📁 **Informative Filenames**: Downloads have meaningful names like `avodah_zarah_71-76.html`
@@ -55,9 +57,10 @@ This will:
 
 **Using the web interface:**
 1. **Select Tractate**: Type to search (e.g., "בבא" shows all בבא tractates)
-2. **Choose Page Range**: Use default ב עמוד א עד ב עמוד ב or customize with arrows
-3. **Download**: Click "הורד דפים" and watch the real-time progress bar
-4. **Get File**: Downloads automatically when complete with informative filenames
+2. **Choose Starting Daf**: Set the daf and amud to start from, using the arrows or arrow keys
+3. **Choose Page Count**: Enter how many pages you want out of your printer, and the paper size
+4. **Download**: Click "הורד דפים" and watch the real-time progress bar
+5. **Get File**: Downloads automatically, containing exactly the amudim that fit in that many pages
 
 ### Option 2: Command Line Tools (Legacy)
 
@@ -128,11 +131,20 @@ The scripts include comprehensive Hebrew numeral mapping:
 ```
 
 ### Print Settings
-For best results when printing:
-- Use A4 or Letter paper size
-- Enable background graphics
-- Set margins to 0.5 inches
-- Consider landscape orientation for wider pages
+The web app asks for a starting daf and a number of printed pages, then picks the
+end daf so the result fits in that many sheets. It downloads amudim from the start
+point, lays them out in a hidden iframe sized to the exact printable area, and keeps
+the longest run of amudim that stays within your target.
+
+The generated file pins the paper size and margins with an `@page` rule, so the count
+only holds if the print dialog keeps its defaults:
+- Paper size matching the one selected in the app (A4 or Letter)
+- Margins set to "Default" - the file supplies 12mm itself
+- Scale at 100%
+
+The reported count is exact in most cases. When the measurement is ambiguous the app
+shows a range (for example `19-20`); the real total is never above the number you asked
+for, and is occasionally one page below it.
 
 ## 🌐 Hebrew Text Support
 

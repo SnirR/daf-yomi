@@ -299,6 +299,39 @@
             display: flex;
             gap: 10px;
         }
+
+        .page-input > .input-with-arrows {
+            flex: 1;
+        }
+
+        .field-hint {
+            margin-top: 6px;
+            font-size: 0.85em;
+            color: #777;
+            line-height: 1.4;
+        }
+
+        #targetPages::-webkit-outer-spin-button,
+        #targetPages::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #targetPages {
+            -moz-appearance: textfield;
+        }
+
+        .fit-result {
+            display: none;
+            margin-top: 15px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            background: #f3f0fa;
+            border: 1px solid #d6ccee;
+            color: #4a3d75;
+            text-align: center;
+            line-height: 1.6;
+        }
         
         .input-with-arrows input,
         .input-with-arrows select {
@@ -364,7 +397,8 @@
         
         <div class="info-box">
             <h3>איך להשתמש:</h3>
-            <p>בחרו מסכת, טווח דפים, ולחצו על הורדה. הקבצים יורדו כ-HTML מאוחד.</p>
+            <p>בחרו מסכת, דף התחלה, וכמה עמודים אתם רוצים להדפיס. האפליקציה תוריד בדיוק כמה דפים שנכנסים.</p>
+            <p style="margin-top:8px;font-size:0.9em;color:#666;">בחלון ההדפסה יש להשאיר שוליים "ברירת מחדל" וקנה מידה 100%.</p>
         </div>
         
         <form id="downloadForm">
@@ -381,54 +415,46 @@
             </div>
             
             <div class="form-group">
-                <label>טווח דפים:</label>
-                <div class="page-range">
-                    <div class="page-input-container">
-                        <div class="page-input">
-                            <div class="input-with-arrows">
-                                <input type="text" id="startDaf" value="ב" class="hebrew-input" required pattern="[א-ת]+" title="הכנס מספר דף בעברית">
-                                <div class="arrow-buttons">
-                                    <button type="button" class="arrow-btn up" data-target="startDaf" tabindex="-1">▲</button>
-                                    <button type="button" class="arrow-btn down" data-target="startDaf" tabindex="-1">▼</button>
-                                </div>
-                            </div>
-                            <div class="input-with-arrows">
-                                <select id="startAmud" required>
-                                    <option value="א" selected>א</option>
-                                    <option value="ב">ב</option>
-                                </select>
-                                <div class="arrow-buttons">
-                                    <button type="button" class="arrow-btn up" data-target="startAmud" tabindex="-1">▲</button>
-                                    <button type="button" class="arrow-btn down" data-target="startAmud" tabindex="-1">▼</button>
-                                </div>
-                            </div>
+                <label>דף התחלה:</label>
+                <div class="page-input">
+                    <div class="input-with-arrows">
+                        <input type="text" id="startDaf" value="ב" class="hebrew-input" required pattern="[א-ת]+" title="הכנס מספר דף בעברית">
+                        <div class="arrow-buttons">
+                            <button type="button" class="arrow-btn up" data-target="startDaf" tabindex="-1">▲</button>
+                            <button type="button" class="arrow-btn down" data-target="startDaf" tabindex="-1">▼</button>
                         </div>
                     </div>
-                    
-                    <div class="range-separator">עד</div>
-                    
-                    <div class="page-input-container">
-                        <div class="page-input">
-                            <div class="input-with-arrows">
-                                <input type="text" id="endDaf" value="ב" class="hebrew-input" required pattern="[א-ת]+" title="הכנס מספר דף בעברית">
-                                <div class="arrow-buttons">
-                                    <button type="button" class="arrow-btn up" data-target="endDaf" tabindex="-1">▲</button>
-                                    <button type="button" class="arrow-btn down" data-target="endDaf" tabindex="-1">▼</button>
-                                </div>
-                            </div>
-                            <div class="input-with-arrows">  
-                                <select id="endAmud" required>
-                                    <option value="א">א</option>
-                                    <option value="ב" selected>ב</option>
-                                </select>
-                                <div class="arrow-buttons">
-                                    <button type="button" class="arrow-btn up" data-target="endAmud" tabindex="-1">▲</button>
-                                    <button type="button" class="arrow-btn down" data-target="endAmud" tabindex="-1">▼</button>
-                                </div>
-                            </div>
+                    <div class="input-with-arrows">
+                        <select id="startAmud" required>
+                            <option value="א" selected>א</option>
+                            <option value="ב">ב</option>
+                        </select>
+                        <div class="arrow-buttons">
+                            <button type="button" class="arrow-btn up" data-target="startAmud" tabindex="-1">▲</button>
+                            <button type="button" class="arrow-btn down" data-target="startAmud" tabindex="-1">▼</button>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label for="targetPages">כמות עמודי הדפסה:</label>
+                <div class="page-input">
+                    <div class="input-with-arrows">
+                        <input type="number" id="targetPages" value="16" min="1" max="120" step="1" required title="כמה עמודים יצאו במדפסת">
+                        <div class="arrow-buttons">
+                            <button type="button" class="arrow-btn up" data-target="targetPages" tabindex="-1">▲</button>
+                            <button type="button" class="arrow-btn down" data-target="targetPages" tabindex="-1">▼</button>
+                        </div>
+                    </div>
+                    <div class="input-with-arrows">
+                        <select id="paperSize" title="גודל נייר">
+                            <option value="a4" selected>A4</option>
+                            <option value="letter">Letter</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-hint">האפליקציה תבחר עד לאיזה דף להוריד כך שההדפסה תתפוס בדיוק את מספר העמודים הזה.</div>
             </div>
             
             <button type="submit" class="download-btn" id="downloadBtn">
@@ -445,7 +471,12 @@
         <div id="currentPage" class="current-page"></div>
         
         <div id="status" class="status"></div>
+
+        <div id="fitResult" class="fit-result"></div>
     </div>
+
+    <iframe id="measureFrame" aria-hidden="true" tabindex="-1"
+            style="position:fixed;left:-99999px;top:0;border:0;visibility:hidden;"></iframe>
 
     <div class="toast-container" id="toastContainer"></div>
 
@@ -454,18 +485,18 @@
         
         document.getElementById('downloadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
+            const targetPages = parseInt(document.getElementById('targetPages').value, 10);
+
             const formData = {
                 tractate: document.getElementById('tractate').value,
                 start_daf: document.getElementById('startDaf').value,
                 start_amud: document.getElementById('startAmud').value,
-                end_daf: document.getElementById('endDaf').value,
-                end_amud: document.getElementById('endAmud').value
+                target_pages: targetPages,
+                paper: document.getElementById('paperSize').value
             };
-            
-            // Validate form
-            if (!formData.tractate || !formData.start_daf || !formData.start_amud || 
-                !formData.end_daf || !formData.end_amud) {
+
+            if (!formData.tractate || !formData.start_daf || !formData.start_amud) {
                 showStatus('אנא מלא את כל השדות', 'error');
                 return;
             }
@@ -476,14 +507,14 @@
             }
             
             // Show loading status and progress bar
+            hideFitResult();
             showStatus('מתחיל הורדה...', 'loading');
             showProgress(true);
             updateProgress(0, 'מתחיל...', '');
             document.getElementById('downloadBtn').disabled = true;
             
             try {
-                // Start the download task
-                const response = await fetch('/api/download', {
+                const response = await fetch('/api/fit/start', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -493,10 +524,7 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    const taskId = data.task_id;
-                    
-                    // Start listening for progress updates
-                    startProgressMonitoring(taskId, formData);
+                    startProgressMonitoring(data.task_id, formData);
                 } else {
                     const error = await response.json();
                     showStatus(`שגיאה: ${error.error}`, 'error');
@@ -523,11 +551,10 @@
                 
                 updateProgress(data.progress, data.message, data.current_page);
                 
-                if (data.status === 'completed') {
-                    showStatus('הושלם! מוריד קובץ...', 'success');
-                    downloadCompletedFile(taskId);
+                if (data.status === 'measure') {
                     currentEventSource.close();
                     currentEventSource = null;
+                    fitToPageCount(taskId, formData.target_pages);
                 } else if (data.status === 'error') {
                     showStatus(`שגיאה: ${data.message}`, 'error');
                     showProgress(false);
@@ -546,6 +573,181 @@
                     currentEventSource = null;
                 }
             };
+        }
+
+        // ── Printed page-count measurement ────────────────────────────────────
+        // The printed page count is only knowable by laying the text out at the
+        // exact printable size. CSS multi-column layout fragments content with
+        // the same rules as pagination, so a fixed-height column container whose
+        // column width equals the printable width produces one column per sheet.
+
+        const MAX_EXTEND_ROUNDS = 4;
+
+        function createMeasurer(payload) {
+            const frame = document.getElementById('measureFrame');
+            const pageWidth = Math.round(payload.page_width_px);
+            const pageHeight = payload.page_height_px;
+
+            frame.style.width = (pageWidth + 40) + 'px';
+            frame.style.height = Math.ceil(pageHeight + 40) + 'px';
+
+            const doc = frame.contentDocument;
+            doc.open();
+            doc.write(`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8">
+${payload.style}
+<style>
+${payload.print_css}
+    html, body { margin: 0; padding: 0; }
+    body { width: ${pageWidth}px; }
+    #measureDoc {
+        width: ${pageWidth}px;
+        height: ${pageHeight}px;
+        column-width: ${pageWidth}px;
+        column-gap: 0;
+        column-fill: auto;
+        overflow: hidden;
+        direction: ltr;
+    }
+    #measureDoc > * { direction: rtl; text-align: right; }
+    #measureFlow { width: ${pageWidth}px; }
+</style></head><body><div id="measureDoc"></div><div id="measureFlow"></div></body></html>`);
+            doc.close();
+
+            const container = doc.getElementById('measureDoc');
+            const flow = doc.getElementById('measureFlow');
+
+            const buildHtml = (fragments, count) =>
+                payload.header_html + fragments.slice(0, count).map(f => f.html).join('');
+
+            return {
+                ready: doc.fonts ? doc.fonts.ready : Promise.resolve(),
+
+                // Column count, which fragments text the same way pagination does.
+                // Never fewer than the real sheet count, occasionally one more.
+                pagesFor(fragments, count) {
+                    container.innerHTML = buildHtml(fragments, count);
+                    return Math.max(1, Math.round(container.scrollWidth / pageWidth));
+                },
+
+                // Unbroken content height gives a hard lower bound: no pagination
+                // can squeeze the text into fewer sheets than this.
+                minPagesFor(fragments, count) {
+                    flow.innerHTML = buildHtml(fragments, count);
+                    const height = flow.getBoundingClientRect().height;
+                    flow.innerHTML = '';
+                    return Math.max(1, Math.ceil(height / pageHeight));
+                },
+
+                reset() {
+                    container.innerHTML = '';
+                    flow.innerHTML = '';
+                }
+            };
+        }
+
+        async function fitToPageCount(taskId, targetPages) {
+            try {
+                showStatus('מחשב כמה עמודים ייצאו בהדפסה...', 'loading');
+
+                let payload = await fetchJson(`/api/fit/fragments/${taskId}`);
+                const measurer = createMeasurer(payload);
+                await measurer.ready;
+
+                let fragments = payload.fragments;
+                let totalPages = measurer.pagesFor(fragments, fragments.length);
+
+                // Keep pulling amudim until the downloaded material overflows the
+                // target, otherwise there is nothing to trim back to.
+                for (let round = 0; round < MAX_EXTEND_ROUNDS; round++) {
+                    if (totalPages > targetPages || !payload.has_more) break;
+
+                    const pagesPerAmud = Math.max(0.25, totalPages / fragments.length);
+                    const extra = Math.max(1, Math.ceil((targetPages - totalPages) / pagesPerAmud) + 1);
+
+                    showStatus(`מוריד עוד דפים (${totalPages} מתוך ${targetPages} עמודים)...`, 'loading');
+
+                    payload = await fetchJson(`/api/fit/extend/${taskId}`, { count: extra });
+                    fragments = payload.fragments;
+                    totalPages = measurer.pagesFor(fragments, fragments.length);
+                }
+
+                // Largest prefix of amudim that still fits within the target.
+                let best = 0;
+                let bestPages = 0;
+                let lo = 1, hi = fragments.length;
+
+                while (lo <= hi) {
+                    const mid = (lo + hi) >> 1;
+                    const pages = measurer.pagesFor(fragments, mid);
+                    if (pages <= targetPages) {
+                        best = mid;
+                        bestPages = pages;
+                        lo = mid + 1;
+                    } else {
+                        hi = mid - 1;
+                    }
+                }
+
+                if (best === 0) {
+                    best = 1;
+                    bestPages = measurer.pagesFor(fragments, 1);
+                    showToast(`עמוד בודד כבר תופס ${bestPages} עמודי הדפסה - הורדנו דף אחד`, 'warning', 5000);
+                }
+
+                const minPages = measurer.minPagesFor(fragments, best);
+                measurer.reset();
+
+                showStatus('בונה את הקובץ...', 'loading');
+                const built = await fetchJson(`/api/fit/build/${taskId}`, { amud_count: best });
+
+                const startLabel = `${document.getElementById('startDaf').value} ע"${document.getElementById('startAmud').value}`;
+                const endLabel = `${built.end_daf} ע"${built.end_amud}`;
+                const stoppedBecauseNextDoesNotFit = best < fragments.length;
+                showFitResult(startLabel, endLabel, best, minPages, bestPages, targetPages,
+                              stoppedBecauseNextDoesNotFit, payload.has_more);
+
+                await downloadCompletedFile(taskId);
+            } catch (error) {
+                showStatus(`שגיאה בחישוב מספר העמודים: ${error.message}`, 'error');
+                showProgress(false);
+                document.getElementById('downloadBtn').disabled = false;
+            }
+        }
+
+        async function fetchJson(url, body) {
+            const options = body
+                ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+                : {};
+            const response = await fetch(url, options);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || response.statusText);
+            return data;
+        }
+
+        function showFitResult(startLabel, endLabel, amudCount, minPages, maxPages, targetPages,
+                               stoppedBecauseNextDoesNotFit, hasMore) {
+            const el = document.getElementById('fitResult');
+            const shortfall = targetPages - maxPages;
+
+            // maxPages never undershoots the real sheet count and minPages never
+            // overshoots it, so show a range whenever the two disagree.
+            const pagesLabel = minPages < maxPages ? `${minPages}-${maxPages}` : `${maxPages}`;
+
+            let note = '';
+            if (shortfall > 0 && stoppedBecauseNextDoesNotFit) {
+                note = `העמוד הבא כבר לא נכנס ב-${targetPages} עמודים, לכן נשארו ${shortfall} עמודים פנויים.`;
+            } else if (shortfall > 0 && !hasMore) {
+                note = 'המסכת נגמרה לפני שהגענו למספר העמודים שביקשת.';
+            }
+
+            el.innerHTML = `<strong>${startLabel} עד ${endLabel}</strong> (${amudCount} עמודי גמרא)<br>` +
+                           `${pagesLabel} עמודי הדפסה מתוך ${targetPages} שביקשת` +
+                           (note ? `<br><span style="font-size:0.9em;color:#777;">${note}</span>` : '');
+            el.style.display = 'block';
+        }
+
+        function hideFitResult() {
+            document.getElementById('fitResult').style.display = 'none';
         }
         
         async function downloadCompletedFile(taskId) {
@@ -696,13 +898,6 @@
             return amud === 'א' ? 1 : 2;
         }
 
-        // Compare two daf+amud combos. Returns negative if a < b, 0 if equal, positive if a > b.
-        function compareDafAmud(dafA, amudA, dafB, amudB) {
-            const na = dafToNumber(dafA) * 2 + amudToNumber(amudA);
-            const nb = dafToNumber(dafB) * 2 + amudToNumber(amudB);
-            return na - nb;
-        }
-
         function getCurrentTractate() {
             return document.getElementById('tractate').value.trim();
         }
@@ -719,7 +914,7 @@
         }
 
         function clearAllInvalid() {
-            ['startDaf','startAmud','endDaf','endAmud'].forEach(markValid);
+            ['startDaf','startAmud','targetPages'].forEach(markValid);
         }
 
         // ── Core validation ───────────────────────────────────────────────────
@@ -742,35 +937,27 @@
 
             // Check that if this is the last daf, amud doesn't exceed lastAmud
             if (dafNum === lastDafNum && limit.lastAmud === 'א' && amudNum > 1) {
-                const amudFieldId = fieldId.includes('start') ? 'startAmud' : 'endAmud';
-                markInvalid(amudFieldId);
+                markInvalid('startAmud');
                 if (!silent) showToast(`מסכת ${tractate} מסתיימת בעמוד א של דף ${hebrewNumbers[lastDafNum - 1]} - עמוד ב לא קיים`);
                 return false;
             }
 
             markValid(fieldId);
-            markValid(fieldId.includes('start') ? 'startAmud' : 'endAmud');
+            markValid('startAmud');
             return true;
         }
 
-        function validateRange(silent) {
-            const startDaf = document.getElementById('startDaf').value;
-            const startAmud = document.getElementById('startAmud').value;
-            const endDaf = document.getElementById('endDaf').value;
-            const endAmud = document.getElementById('endAmud').value;
+        function validateTargetPages(silent) {
+            const input = document.getElementById('targetPages');
+            const value = parseInt(input.value, 10);
 
-            if (!startDaf || !endDaf) return true;
-            if (dafToNumber(startDaf) <= 0 || dafToNumber(endDaf) <= 0) return true;
-
-            if (compareDafAmud(startDaf, startAmud, endDaf, endAmud) > 0) {
-                markInvalid('endDaf');
-                markInvalid('endAmud');
-                if (!silent) showToast(`טווח לא תקין: דף ${startDaf} עמוד ${startAmud} מאוחר יותר מ-${endDaf} עמוד ${endAmud}`);
+            if (!Number.isFinite(value) || value < 1 || value > 120) {
+                markInvalid('targetPages');
+                if (!silent) showToast('כמות עמודי ההדפסה חייבת להיות בין 1 ל-120');
                 return false;
             }
 
-            markValid('endDaf');
-            markValid('endAmud');
+            markValid('targetPages');
             return true;
         }
 
@@ -778,13 +965,10 @@
             clearAllInvalid();
             const startDaf = document.getElementById('startDaf').value;
             const startAmud = document.getElementById('startAmud').value;
-            const endDaf = document.getElementById('endDaf').value;
-            const endAmud = document.getElementById('endAmud').value;
 
             let ok = true;
             ok = validateDafAgainstTractate(startDaf, startAmud, 'startDaf', 'דף התחלה', silent) && ok;
-            ok = validateDafAgainstTractate(endDaf, endAmud, 'endDaf', 'דף סיום', silent) && ok;
-            ok = validateRange(silent) && ok;
+            ok = validateTargetPages(silent) && ok;
             return ok;
         }
 
@@ -822,9 +1006,15 @@
             handleDafInput(e, 'startAmud');
         });
 
-        document.getElementById('endDaf').addEventListener('input', function(e) {
-            handleDafInput(e, 'endAmud');
+        document.getElementById('targetPages').addEventListener('input', function() {
+            runAllValidations(true);
         });
+
+        document.getElementById('targetPages').addEventListener('change', function() {
+            runAllValidations();
+        });
+
+        document.getElementById('paperSize').addEventListener('change', hideFitResult);
 
         document.getElementById('tractate').addEventListener('input', validateHebrewInputAllowSpace);
 
@@ -834,20 +1024,6 @@
             const limit = TRACTATE_LIMITS[tractate];
             if (limit && limit.lastAmud === 'א') {
                 const dafNum = dafToNumber(document.getElementById('startDaf').value);
-                if (dafNum === limit.lastDaf && this.value === 'ב') {
-                    this.value = 'א';
-                    showToast(`מסכת ${tractate} מסתיימת בעמוד א של דף ${hebrewNumbers[limit.lastDaf - 1]}`, 'error');
-                    return;
-                }
-            }
-            runAllValidations();
-        });
-
-        document.getElementById('endAmud').addEventListener('change', function() {
-            const tractate = getCurrentTractate();
-            const limit = TRACTATE_LIMITS[tractate];
-            if (limit && limit.lastAmud === 'א') {
-                const dafNum = dafToNumber(document.getElementById('endDaf').value);
                 if (dafNum === limit.lastDaf && this.value === 'ב') {
                     this.value = 'א';
                     showToast(`מסכת ${tractate} מסתיימת בעמוד א של דף ${hebrewNumbers[limit.lastDaf - 1]}`, 'error');
@@ -988,9 +1164,7 @@
         
         // Add keyboard event listeners for page inputs
         document.getElementById('startDaf').addEventListener('keydown', handlePageKeydown);
-        document.getElementById('endDaf').addEventListener('keydown', handlePageKeydown);
         document.getElementById('startAmud').addEventListener('keydown', handleAmudKeydown);
-        document.getElementById('endAmud').addEventListener('keydown', handleAmudKeydown);
         
         // Add click event listeners for arrow buttons
         document.querySelectorAll('.arrow-btn').forEach(btn => {
@@ -998,13 +1172,24 @@
                 const target = this.dataset.target;
                 const isDown = this.classList.contains('down');
                 
-                if (target.includes('Daf')) {
+                if (target === 'targetPages') {
+                    adjustTargetPages(isDown); // down = fewer, up = more
+                } else if (target.includes('Daf')) {
                     adjustDaf(target, isDown); // down = next/larger, up = previous/smaller
                 } else if (target.includes('Amud')) {
                     adjustAmud(target, isDown); // down = next (א to ב), up = previous (ב to א)
                 }
             });
         });
+
+        function adjustTargetPages(isDown) {
+            const input = document.getElementById('targetPages');
+            const current = parseInt(input.value, 10) || 1;
+            const next = isDown ? current - 1 : current + 1;
+            input.value = Math.min(120, Math.max(1, next));
+            runAllValidations();
+            saveFormState();
+        }
         
         function handlePageKeydown(e) {
             if (e.key === 'ArrowUp') {
@@ -1051,7 +1236,7 @@
         function adjustAmud(targetId, isNext) {
             const select = document.getElementById(targetId);
             const currentValue = select.value;
-            const dafInputId = targetId === 'startAmud' ? 'startDaf' : 'endDaf';
+            const dafInputId = 'startDaf';
 
             if (isNext && currentValue === 'א') {
                 // Check if we'd be going to ב on the last daf of a tractate that ends on א
@@ -1074,7 +1259,7 @@
 
         // Persist form state in localStorage so the last input is remembered.
         const STORAGE_KEY = 'dafYomiLastInput';
-        const persistedFieldIds = ['tractate', 'startDaf', 'startAmud', 'endDaf', 'endAmud'];
+        const persistedFieldIds = ['tractate', 'startDaf', 'startAmud', 'targetPages', 'paperSize'];
 
         function saveFormState() {
             const state = {};
@@ -1110,9 +1295,7 @@
         restoreFormState();
         // Validate restored state silently (no toast on page load, just highlight invalid fields)
         setTimeout(() => {
-            const startDaf = document.getElementById('startDaf').value;
-            const endDaf = document.getElementById('endDaf').value;
-            if (startDaf && endDaf) runAllValidations(true);
+            if (document.getElementById('startDaf').value) runAllValidations(true);
         }, 0);
 
         persistedFieldIds.forEach(id => {
