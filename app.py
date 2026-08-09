@@ -692,7 +692,12 @@ COMBINED_PRINT_CSS = """        body {
         }
 """
 
-def build_combined_style(paper='a4'):
+def printable_height_mm(paper='a4'):
+    """Printable page height in mm after @page margins."""
+    _, _, paper_h = PAPER_SIZES.get(paper, PAPER_SIZES['a4'])
+    return paper_h - 2 * PRINT_MARGIN_MM
+
+def build_combined_style(paper='a4', cut_to_pages=None):
     """
     Style block for the downloaded file.
 
@@ -700,6 +705,16 @@ def build_combined_style(paper='a4'):
     deterministic instead of depending on the browser's default margins.
     """
     css_size, _, _ = PAPER_SIZES.get(paper, PAPER_SIZES['a4'])
+
+    cut_css = ''
+    if cut_to_pages:
+        printable_h = printable_height_mm(paper)
+        cut_css = f"""
+        .print-budget {{
+            max-height: calc({printable_h:g}mm * {cut_to_pages});
+            overflow: hidden;
+        }}
+"""
 
     return f"""    <style>
         @page {{
@@ -748,7 +763,7 @@ def build_combined_style(paper='a4'):
             vertical-align: baseline;
             line-height: 1;
         }}
-        @media print {{
+{cut_css}        @media print {{
 {COMBINED_PRINT_CSS}        }}
     </style>"""
 
@@ -788,11 +803,17 @@ def render_page_fragment(page):
 def build_document_title(tractate_name, start_daf, start_amud, end_daf, end_amud):
     return f"{tractate_name} {start_daf} {start_amud} - {end_daf} {end_amud}"
 
-def create_combined_html(pages, tractate_name, start_daf, start_amud, end_daf, end_amud, paper='a4'):
+def create_combined_html(pages, tractate_name, start_daf, start_amud, end_daf, end_amud, paper='a4', cut_to_pages=None):
     """Create combined HTML from multiple pages"""
     title = build_document_title(tractate_name, start_daf, start_amud, end_daf, end_amud)
 
     body = ''.join(render_page_fragment(page) for page in pages)
+    header = f'    <h1>📖 {title}</h1>\n'
+
+    if cut_to_pages:
+        body = f'    <div class="print-budget">\n{header}{body}    </div>\n'
+    else:
+        body = header + body
 
     return f"""<!DOCTYPE html>
 <html dir="rtl" lang="he">
@@ -800,10 +821,9 @@ def create_combined_html(pages, tractate_name, start_daf, start_amud, end_daf, e
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
-{build_combined_style(paper)}
+{build_combined_style(paper, cut_to_pages=cut_to_pages)}
 </head>
 <body>
-    <h1>📖 {title}</h1>
 {body}</body>
 </html>"""
 
@@ -1041,13 +1061,22 @@ def fit_build(task_id):
     except (TypeError, ValueError):
         amud_count = 0
 
+    cut_to_pages = None
+    if (request.json or {}).get('cut_to_pages') is not None:
+        try:
+            cut_to_pages = int((request.json or {}).get('cut_to_pages'))
+        except (TypeError, ValueError):
+            return jsonify({'error': 'מספר עמודים לחיתוך לא תקין'}), 400
+        if cut_to_pages < 1:
+            return jsonify({'error': 'מספר עמודים לחיתוך חייב להיות לפחות 1'}), 400
+
     amud_count = max(1, min(amud_count, len(task['amudim'])))
     selected = task['amudim'][:amud_count]
     end_daf, end_amud = selected[-1]['daf'], selected[-1]['amud']
 
     combined_html = create_combined_html(
         selected, task['tractate_name'], task['start_daf'], task['start_amud'],
-        end_daf, end_amud, task['paper']
+        end_daf, end_amud, task['paper'], cut_to_pages=cut_to_pages
     )
 
     temp_dir = tempfile.mkdtemp()
